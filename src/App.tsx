@@ -207,15 +207,17 @@ export default function App() {
     }
   };
 
-  // Render Password Lock as overlay
+  // Render Password Lock as default shield
+  if (!unlocked) {
+    return <PasswordScreen onUnlock={() => setUnlocked(true)} />;
+  }
+
   return (
-    <>
-      {!unlocked && <PasswordScreen onUnlock={() => setUnlocked(true)} />}
-      <div
-        onClick={handleScreenClick}
-        className={`${!unlocked ? 'hidden' : 'flex'} min-h-screen bg-gradient-to-tr from-[#FFF5F5] via-[#FFF2F4] to-[#FFF9FB] flex-col relative font-sans text-stone-800`}
-        id="main-app-viewport"
-      >
+    <div
+      onClick={handleScreenClick}
+      className="min-h-screen bg-gradient-to-tr from-[#FFF5F5] via-[#FFF2F4] to-[#FFF9FB] flex flex-col relative font-sans text-stone-800"
+      id="main-app-viewport"
+    >
       {/* Click Particles Engine */}
       <div className="fixed inset-0 pointer-events-none z-50">
         <AnimatePresence>
@@ -420,6 +422,5 @@ export default function App() {
         </div>
       </footer>
     </div>
-    </>
   );
 }

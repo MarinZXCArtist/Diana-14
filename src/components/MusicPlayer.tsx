@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Volume2, VolumeX, Sparkles, Heart, Disc } from 'lucide-react';
 
 export default function MusicPlayer() {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(0.7);
@@ -13,7 +13,6 @@ export default function MusicPlayer() {
   const mp3FileName = 'Макс Корж — Тает дым';
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const isExplicitlyPausedRef = useRef(false);
 
   // Sync volume with MP3 audio player
   useEffect(() => {
@@ -24,53 +23,25 @@ export default function MusicPlayer() {
 
   // Handle autoplay and user gesture bypass
   useEffect(() => {
-    // 1. Try to autoplay right away
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          console.log("Autoplay blocked by browser. Awaiting user interaction to play.");
-          setIsPlaying(false);
+    let playTimeout = setTimeout(() => {
+      if (audioPlayerRef.current && isPlaying) {
+        audioPlayerRef.current.play().catch((err) => {
+          console.log("Playback blocked by browser until first interaction.");
         });
-    }
-
-    // 2. Setup first interaction listener to play audio automatically if browser blocked autoplay
-    const handleFirstInteraction = () => {
-      if (isExplicitlyPausedRef.current) {
-        cleanup();
-        return;
       }
-      
-      if (audioPlayerRef.current && audioPlayerRef.current.paused) {
-        audioPlayerRef.current.play()
-          .then(() => {
-            setIsPlaying(true);
-            cleanup();
-          })
-          .catch((err) => {
-            console.log("Still blocked on interaction:", err);
-          });
-      } else {
-        cleanup();
+    }, 500);
+
+    const handleGesture = () => {
+      if (audioPlayerRef.current && isPlaying && audioPlayerRef.current.paused) {
+        audioPlayerRef.current.play().catch(() => {});
       }
     };
-
-    const cleanup = () => {
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-    };
-
-    window.addEventListener('click', handleFirstInteraction);
-    window.addEventListener('touchstart', handleFirstInteraction);
-    window.addEventListener('keydown', handleFirstInteraction);
-
+    window.addEventListener('click', handleGesture);
     return () => {
-      cleanup();
+      clearTimeout(playTimeout);
+      window.removeEventListener('click', handleGesture);
     };
-  }, []);
+  }, [isPlaying]);
 
   // Spawns floating hearts over the vinyl
   useEffect(() => {
@@ -101,17 +72,12 @@ export default function MusicPlayer() {
     }
   };
 
-  const togglePlay = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+  const togglePlay = () => {
     if (audioPlayerRef.current) {
       if (isPlaying) {
         audioPlayerRef.current.pause();
-        isExplicitlyPausedRef.current = true;
         setIsPlaying(false);
       } else {
-        isExplicitlyPausedRef.current = false;
         audioPlayerRef.current.play().then(() => {
           setIsPlaying(true);
         }).catch((err) => {
